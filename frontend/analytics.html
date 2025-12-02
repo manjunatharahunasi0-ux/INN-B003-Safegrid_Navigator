@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Risk Analytics - Safegrid Navigator</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 2em;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-links a {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .nav-links a:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .disruption-feed {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .disruption-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 4px solid #667eea;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .disruption-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .disruption-type {
+            font-weight: 700;
+            color: #667eea;
+            text-transform: uppercase;
+            font-size: 0.9em;
+        }
+
+        .severity-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 700;
+        }
+
+        .severity-high {
+            background: #f44336;
+            color: white;
+        }
+
+        .severity-medium {
+            background: #ff9800;
+            color: white;
+        }
+
+        .severity-low {
+            background: #4caf50;
+            color: white;
+        }
+
+        .disruption-location {
+            color: #666;
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+
+        .timestamp {
+            color: #999;
+            font-size: 0.75em;
+            margin-top: 8px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 1.2em;
+        }
+
+        .time-filter {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            background: #e0e0e0;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .filter-btn:hover {
+            background: #764ba2;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-chart-line"></i> Risk Analytics Dashboard</h1>
+            <div class="nav-links">
+                <a href="index.html"><i class="fas fa-home"></i> Home</a>
+                <a href="analytics.html" style="background: #764ba2;"><i class="fas fa-chart-bar"></i> Analytics</a>
+                <a href="route-analytics.html"><i class="fas fa-chart-area"></i> Route Analytics</a>
+                <a href="route-decision-maker.html"><i class="fas fa-map-marked-alt"></i> Decision Maker</a>
+                <a href="live-disruptions.html"><i class="fas fa-broadcast-tower"></i> Live Feed</a>
+            </div>
+        </header>
+
+        <!-- Statistics Summary -->
+        <div class="card">
+            <h2><i class="fas fa-info-circle"></i> Statistical Overview</h2>
+            <div class="stats-grid" id="statsGrid">
+                <div class="loading">Loading statistics...</div>
+            </div>
+        </div>
+
+        <!-- Main Charts -->
+        <div class="main-grid">
+            <div class="card">
+                <h2><i class="fas fa-chart-line"></i> Historical Risk Trends</h2>
+                <div class="time-filter">
+                    <button class="filter-btn active" onclick="loadHistory(7)">7 Days</button>
+                    <button class="filter-btn" onclick="loadHistory(14)">14 Days</button>
+                    <button class="filter-btn" onclick="loadHistory(30)">30 Days</button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="riskTrendChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><i class="fas fa-exclamation-triangle"></i> Recent Disruptions</h2>
+                <div class="disruption-feed" id="recentDisruptions">
+                    <div class="loading">Loading disruptions...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Disruption Breakdown -->
+        <div class="card">
+            <h2><i class="fas fa-pie-chart"></i> Disruption Type Distribution</h2>
+            <div class="chart-container">
+                <canvas id="disruptionTypeChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        let riskChart = null;
+        let typeChart = null;
+
+        // Load statistics
+        async function loadStatistics() {
+            try {
+                const response = await fetch(`${API_BASE}/statistics`);
+                const stats = await response.json();
+                
+                const statsHtml = `
+                    <div class="stat-card">
+                        <div class="stat-label">Average Risk Score</div>
+                        <div class="stat-value">${(stats.average_risk * 100).toFixed(0)}%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">High Risk Days</div>
+                        <div class="stat-value">${stats.high_risk_days}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Total Days Tracked</div>
+                        <div class="stat-value">${stats.total_days}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Risk Trend</div>
+                        <div class="stat-value">
+                            <i class="fas fa-arrow-${stats.trend === 'increasing' ? 'up' : 'down'}"></i>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('statsGrid').innerHTML = statsHtml;
+            } catch (error) {
+                console.error('Error loading statistics:', error);
+            }
+        }
+
+        // Load risk history and create chart
+        async function loadHistory(days = 30) {
+            try {
+                // Update active button
+                document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+                event.target.classList.add('active');
+                
+                const response = await fetch(`${API_BASE}/risk_history?days=${days}`);
+                const data = await response.json();
+                
+                const labels = data.history.map(h => h.date);
+                const riskScores = data.history.map(h => h.risk_score * 100);
+                const highCount = data.history.map(h => h.high_severity_count);
+                const mediumCount = data.history.map(h => h.medium_severity_count);
+                const lowCount = data.history.map(h => h.low_severity_count);
+                
+                // Destroy existing chart
+                if (riskChart) {
+                    riskChart.destroy();
+                }
+                
+                const ctx = document.getElementById('riskTrendChart').getContext('2d');
+                riskChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Risk Score (%)',
+                                data: riskScores,
+                                borderColor: '#667eea',
+                                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                                borderWidth: 3,
+                                fill: true,
+                                tension: 0.4,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: 'High Severity Disruptions',
+                                data: highCount,
+                                borderColor: '#f44336',
+                                backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                                borderWidth: 2,
+                                fill: false,
+                                tension: 0.4,
+                                yAxisID: 'y1'
+                            },
+                            {
+                                label: 'Medium Severity Disruptions',
+                                data: mediumCount,
+                                borderColor: '#ff9800',
+                                backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                                borderWidth: 2,
+                                fill: false,
+                                tension: 0.4,
+                                yAxisID: 'y1'
+                            },
+                            {
+                                label: 'Low Severity Disruptions',
+                                data: lowCount,
+                                borderColor: '#4caf50',
+                                backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                                borderWidth: 2,
+                                fill: false,
+                                tension: 0.4,
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: 'Risk Score (%)'
+                                },
+                                min: 0,
+                                max: 100
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                title: {
+                                    display: true,
+                                    text: 'Disruption Count'
+                                },
+                                grid: {
+                                    drawOnChartArea: false
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading history:', error);
+            }
+        }
+
+        // Load recent disruptions
+        async function loadRecentDisruptions() {
+            try {
+                const response = await fetch(`${API_BASE}/disruption_history?days=7`);
+                const data = await response.json();
+                
+                // Sort by timestamp (most recent first)
+                const sortedDisruptions = data.disruptions.sort((a, b) => 
+                    new Date(b.timestamp) - new Date(a.timestamp)
+                );
+                
+                // Show only last 10
+                const recentDisruptions = sortedDisruptions.slice(0, 10);
+                
+                const html = recentDisruptions.map(d => `
+                    <div class="disruption-item">
+                        <div class="disruption-header">
+                            <span class="disruption-type">${d.type.replace(/_/g, ' ')}</span>
+                            <span class="severity-badge severity-${d.severity}">${d.severity.toUpperCase()}</span>
+                        </div>
+                        <div class="disruption-location">
+                            <i class="fas fa-map-marker-alt"></i> ${d.location}
+                        </div>
+                        <div class="timestamp">
+                            <i class="fas fa-clock"></i> ${new Date(d.timestamp).toLocaleString()}
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.getElementById('recentDisruptions').innerHTML = html || '<p>No recent disruptions</p>';
+                
+                // Create type distribution chart
+                createTypeChart(data.disruptions);
+            } catch (error) {
+                console.error('Error loading disruptions:', error);
+            }
+        }
+
+        // Create disruption type distribution chart
+        function createTypeChart(disruptions) {
+            const typeCounts = {};
+            disruptions.forEach(d => {
+                typeCounts[d.type] = (typeCounts[d.type] || 0) + 1;
+            });
+            
+            const types = Object.keys(typeCounts);
+            const counts = Object.values(typeCounts);
+            
+            if (typeChart) {
+                typeChart.destroy();
+            }
+            
+            const ctx = document.getElementById('disruptionTypeChart').getContext('2d');
+            typeChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: types.map(t => t.replace(/_/g, ' ').toUpperCase()),
+                    datasets: [{
+                        label: 'Disruption Count',
+                        data: counts,
+                        backgroundColor: [
+                            'rgba(102, 126, 234, 0.8)',
+                            'rgba(244, 67, 54, 0.8)',
+                            'rgba(255, 152, 0, 0.8)',
+                            'rgba(76, 175, 80, 0.8)',
+                            'rgba(156, 39, 176, 0.8)',
+                            'rgba(33, 150, 243, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(102, 126, 234, 1)',
+                            'rgba(244, 67, 54, 1)',
+                            'rgba(255, 152, 0, 1)',
+                            'rgba(76, 175, 80, 1)',
+                            'rgba(156, 39, 176, 1)',
+                            'rgba(33, 150, 243, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize on page load
+        loadStatistics();
+        loadHistory(30);
+        loadRecentDisruptions();
+        
+        // Auto-refresh every 2 minutes
+        setInterval(() => {
+            loadStatistics();
+            loadRecentDisruptions();
+        }, 120000);
+    </script>
+</body>
+</html>

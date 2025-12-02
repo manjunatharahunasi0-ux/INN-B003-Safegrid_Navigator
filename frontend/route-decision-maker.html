@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Route Decision Maker - Safegrid Navigator</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 2em;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-links a {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-size: 0.9em;
+        }
+
+        .nav-links a:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .route-input-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-group label {
+            margin-bottom: 8px;
+            color: #666;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .input-group input {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+            align-self: flex-end;
+        }
+
+        .btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .risk-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .risk-card {
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .risk-card-low {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+        }
+
+        .risk-card-medium {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+        }
+
+        .risk-card-high {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+        }
+
+        .risk-card h3 {
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            opacity: 0.95;
+        }
+
+        .risk-card .value {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 500px;
+            margin-bottom: 20px;
+        }
+
+        .disruption-timeline {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .timeline-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .timeline-item.severity-high {
+            border-left-color: #f44336;
+        }
+
+        .timeline-item.severity-medium {
+            border-left-color: #ff9800;
+        }
+
+        .timeline-item.severity-low {
+            border-left-color: #4caf50;
+        }
+
+        .timeline-marker {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-top: 5px;
+            flex-shrink: 0;
+        }
+
+        .timeline-marker.high {
+            background: #f44336;
+        }
+
+        .timeline-marker.medium {
+            background: #ff9800;
+        }
+
+        .timeline-marker.low {
+            background: #4caf50;
+        }
+
+        .timeline-content {
+            flex: 1;
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .timeline-type {
+            font-weight: 700;
+            color: #667eea;
+            text-transform: uppercase;
+            font-size: 0.85em;
+        }
+
+        .timeline-severity {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+            color: white;
+        }
+
+        .timeline-severity.high {
+            background: #f44336;
+        }
+
+        .timeline-severity.medium {
+            background: #ff9800;
+        }
+
+        .timeline-severity.low {
+            background: #4caf50;
+        }
+
+        .timeline-location {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .timeline-date {
+            color: #999;
+            font-size: 0.8em;
+        }
+
+        .decision-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .decision-section h3 {
+            font-size: 1.8em;
+            margin-bottom: 15px;
+        }
+
+        .decision-section p {
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            opacity: 0.95;
+        }
+
+        .decision-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .decision-btn {
+            padding: 15px 40px;
+            font-size: 1.1em;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .decision-btn-proceed {
+            background: #4caf50;
+            color: white;
+        }
+
+        .decision-btn-proceed:hover {
+            background: #45a049;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .decision-btn-reconsider {
+            background: white;
+            color: #667eea;
+        }
+
+        .decision-btn-reconsider:hover {
+            background: #f8f9fa;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 1.2em;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .alert-info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-left: 4px solid #1976d2;
+        }
+
+        .alert-warning {
+            background: #fff3e0;
+            color: #f57c00;
+            border-left: 4px solid #f57c00;
+        }
+
+        .alert-danger {
+            background: #ffebee;
+            color: #d32f2f;
+            border-left: 4px solid #d32f2f;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .recommendation-box {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 5px solid;
+        }
+
+        .recommendation-box.safe {
+            border-left-color: #4caf50;
+        }
+
+        .recommendation-box.caution {
+            border-left-color: #ff9800;
+        }
+
+        .recommendation-box.danger {
+            border-left-color: #f44336;
+        }
+
+        .recommendation-box h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .recommendation-box ul {
+            margin-left: 20px;
+            color: #666;
+        }
+
+        .recommendation-box ul li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-route"></i> Route Decision Maker</h1>
+            <div class="nav-links">
+                <a href="index.html"><i class="fas fa-home"></i> Home</a>
+                <a href="analytics.html"><i class="fas fa-chart-bar"></i> Analytics</a>
+                <a href="route-analytics.html"><i class="fas fa-chart-area"></i> Route Analytics</a>
+                <a href="route-decision-maker.html" style="background: #764ba2;">
+                    <i class="fas fa-map-marked-alt"></i> Decision Maker
+                </a>
+                <a href="live-disruptions.html"><i class="fas fa-broadcast-tower"></i> Live Feed</a>
+            </div>
+        </header>
+
+        <!-- Route Input -->
+        <div class="card">
+            <h2><i class="fas fa-search"></i> Analyze Route for Decision Making</h2>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <span>Enter your planned route to see all disruptions along the corridor and assess whether to proceed or reconsider based on real-time risk levels.</span>
+            </div>
+            
+            <div class="route-input-section">
+                <div class="input-group">
+                    <label><i class="fas fa-map-marker-alt"></i> Origin Port/City</label>
+                    <input type="text" id="originInput" placeholder="e.g., Shanghai, Rotterdam, Singapore">
+                </div>
+                <div class="input-group">
+                    <label><i class="fas fa-flag-checkered"></i> Destination Port/City</label>
+                    <input type="text" id="destinationInput" placeholder="e.g., Los Angeles, Hamburg, Dubai">
+                </div>
+                <button class="btn" onclick="analyzeRouteForDecision()">
+                    <i class="fas fa-analytics"></i> Analyze Route
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="hidden">
+            <!-- Risk Summary Cards -->
+            <div class="card">
+                <h2><i class="fas fa-tachometer-alt"></i> Current Risk Assessment</h2>
+                <div class="risk-summary" id="riskSummary">
+                    <!-- Populated dynamically -->
+                </div>
+                
+                <!-- Recommendation Box -->
+                <div id="recommendationBox" class="recommendation-box">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Multi-Disruption Risk Chart -->
+            <div class="card">
+                <h2><i class="fas fa-chart-line"></i> Risk Timeline with All Disruptions</h2>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>This chart shows the cumulative risk level over time with markers for each disruption event. Hover over points to see details.</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="multiDisruptionChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Disruption Timeline -->
+            <div class="card">
+                <h2><i class="fas fa-list-alt"></i> All Disruptions Along This Route</h2>
+                <div class="disruption-timeline" id="disruptionTimeline">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Decision Section -->
+            <div class="decision-section">
+                <h3><i class="fas fa-balance-scale"></i> Make Your Decision</h3>
+                <p id="decisionText">Based on the analysis above, you can now decide whether to proceed with this route or reconsider alternative options.</p>
+                
+                <div class="decision-buttons">
+                    <button class="decision-btn decision-btn-proceed" onclick="proceedWithRoute()">
+                        <i class="fas fa-check-circle"></i> Proceed with Route
+                    </button>
+                    <button class="decision-btn decision-btn-reconsider" onclick="reconsiderRoute()">
+                        <i class="fas fa-undo"></i> Find Alternative Route
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        let riskChart = null;
+        let currentRouteData = null;
+
+        async function analyzeRouteForDecision() {
+            const origin = document.getElementById('originInput').value.trim();
+            const destination = document.getElementById('destinationInput').value.trim();
+
+            if (!origin || !destination) {
+                alert('Please enter both origin and destination');
+                return;
+            }
+
+            try {
+                // Show loading state
+                document.getElementById('resultsSection').classList.remove('hidden');
+                document.getElementById('riskSummary').innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Analyzing route...</div>';
+                document.getElementById('disruptionTimeline').innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading disruptions...</div>';
+
+                // Fetch current risk assessment
+                const riskResponse = await fetch(`${API_BASE}/calculate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        origin: origin,
+                        destination: destination,
+                        cargo_type: 'general',
+                        value: 100000
+                    })
+                });
+
+                const riskData = await riskResponse.json();
+
+                // Fetch historical data with disruptions
+                const historyResponse = await fetch(
+                    `${API_BASE}/route_history?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&days=30`
+                );
+                const historyData = await historyResponse.json();
+
+                // Fetch all disruptions for this route
+                const disruptionsResponse = await fetch(`${API_BASE}/disruption_history?days=30`);
+                const disruptionsData = await disruptionsResponse.json();
+
+                // Store data globally
+                currentRouteData = {
+                    origin,
+                    destination,
+                    riskData,
+                    historyData,
+                    disruptionsData
+                };
+
+                // Render all sections
+                renderRiskSummary(riskData);
+                renderRecommendation(riskData);
+                renderDisruptionTimeline(disruptionsData.disruptions);
+                renderMultiDisruptionChart(historyData, disruptionsData.disruptions);
+
+            } catch (error) {
+                console.error('Error analyzing route:', error);
+                alert('Error analyzing route. Please try again.');
+            }
+        }
+
+        function renderRiskSummary(riskData) {
+            const riskScore = riskData.risk_score;
+            const disruptions = riskData.disruptions || [];
+            
+            const highSeverity = disruptions.filter(d => d.severity === 'high').length;
+            const mediumSeverity = disruptions.filter(d => d.severity === 'medium').length;
+            const lowSeverity = disruptions.filter(d => d.severity === 'low').length;
+
+            let riskLevel = 'Low';
+            let riskClass = 'low';
+            if (riskScore > 0.7) {
+                riskLevel = 'High';
+                riskClass = 'high';
+            } else if (riskScore > 0.4) {
+                riskLevel = 'Medium';
+                riskClass = 'medium';
+            }
+
+            const html = `
+                <div class="risk-card risk-card-${riskClass}">
+                    <h3>Overall Risk Score</h3>
+                    <div class="value">${(riskScore * 100).toFixed(0)}%</div>
+                    <p style="font-size: 0.9em; opacity: 0.9; margin: 0;">${riskLevel} Risk</p>
+                </div>
+                <div class="risk-card" style="background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);">
+                    <h3>High Severity Events</h3>
+                    <div class="value">${highSeverity}</div>
+                    <p style="font-size: 0.9em; opacity: 0.9; margin: 0;">Active Disruptions</p>
+                </div>
+                <div class="risk-card" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);">
+                    <h3>Medium Severity Events</h3>
+                    <div class="value">${mediumSeverity}</div>
+                    <p style="font-size: 0.9em; opacity: 0.9; margin: 0;">Active Disruptions</p>
+                </div>
+                <div class="risk-card" style="background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);">
+                    <h3>Low Severity Events</h3>
+                    <div class="value">${lowSeverity}</div>
+                    <p style="font-size: 0.9em; opacity: 0.9; margin: 0;">Active Disruptions</p>
+                </div>
+            `;
+
+            document.getElementById('riskSummary').innerHTML = html;
+        }
+
+        function renderRecommendation(riskData) {
+            const riskScore = riskData.risk_score;
+            const disruptions = riskData.disruptions || [];
+            
+            let recommendationClass = 'safe';
+            let recommendationTitle = 'Safe to Proceed';
+            let recommendationIcon = 'check-circle';
+            let recommendations = [];
+
+            if (riskScore > 0.7) {
+                recommendationClass = 'danger';
+                recommendationTitle = 'High Risk - Consider Alternatives';
+                recommendationIcon = 'exclamation-triangle';
+                recommendations = [
+                    'Multiple high-severity disruptions detected',
+                    'Consider postponing shipment or choosing alternative route',
+                    'Monitor situation closely if proceeding',
+                    'Ensure comprehensive insurance coverage',
+                    'Have contingency plans ready'
+                ];
+            } else if (riskScore > 0.4) {
+                recommendationClass = 'caution';
+                recommendationTitle = 'Moderate Risk - Proceed with Caution';
+                recommendationIcon = 'exclamation-circle';
+                recommendations = [
+                    'Some disruptions present along the route',
+                    'Review individual disruption details below',
+                    'Consider adding buffer time to delivery schedule',
+                    'Stay updated on evolving conditions',
+                    'Have backup communication plans'
+                ];
+            } else {
+                recommendations = [
+                    'Route shows low risk levels currently',
+                    'No major disruptions detected',
+                    'Proceed with standard operating procedures',
+                    'Continue monitoring for any changes',
+                    'Maintain regular communication with carriers'
+                ];
+            }
+
+            const html = `
+                <h4><i class="fas fa-${recommendationIcon}"></i> ${recommendationTitle}</h4>
+                <ul>
+                    ${recommendations.map(r => `<li>${r}</li>`).join('')}
+                </ul>
+            `;
+
+            const box = document.getElementById('recommendationBox');
+            box.innerHTML = html;
+            box.className = `recommendation-box ${recommendationClass}`;
+        }
+
+        function renderDisruptionTimeline(disruptions) {
+            if (!disruptions || disruptions.length === 0) {
+                document.getElementById('disruptionTimeline').innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <span>No disruptions found for this route in the past 30 days.</span>
+                    </div>
+                `;
+                return;
+            }
+
+            // Sort by timestamp (most recent first)
+            const sortedDisruptions = [...disruptions].sort((a, b) => 
+                new Date(b.timestamp) - new Date(a.timestamp)
+            );
+
+            const html = sortedDisruptions.map(d => {
+                const date = new Date(d.timestamp);
+                const formattedDate = date.toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                return `
+                    <div class="timeline-item severity-${d.severity}">
+                        <div class="timeline-marker ${d.severity}"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-header">
+                                <span class="timeline-type">${d.type.replace(/_/g, ' ')}</span>
+                                <span class="timeline-severity ${d.severity}">${d.severity.toUpperCase()}</span>
+                            </div>
+                            <div class="timeline-location">
+                                <i class="fas fa-map-marker-alt"></i> ${d.location || 'Location not specified'}
+                            </div>
+                            <div class="timeline-date">
+                                <i class="fas fa-clock"></i> ${formattedDate}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('disruptionTimeline').innerHTML = html;
+        }
+
+        function renderMultiDisruptionChart(historyData, disruptions) {
+            if (!historyData.history || historyData.history.length === 0) {
+                // If no history, create a simple current state chart
+                createCurrentStateChart(disruptions);
+                return;
+            }
+
+            const history = historyData.history;
+            const labels = history.map(h => h.date);
+            const riskScores = history.map(h => h.risk_score * 100);
+
+            // Map disruptions to chart data points
+            const disruptionPoints = disruptions.map(d => {
+                const date = new Date(d.timestamp).toISOString().split('T')[0];
+                const dataIndex = labels.indexOf(date);
+                
+                if (dataIndex !== -1) {
+                    return {
+                        x: dataIndex,
+                        y: riskScores[dataIndex],
+                        severity: d.severity,
+                        type: d.type,
+                        location: d.location
+                    };
+                }
+                return null;
+            }).filter(p => p !== null);
+
+            // Separate disruptions by severity for different colors
+            const highDisruptions = disruptionPoints.filter(p => p.severity === 'high');
+            const mediumDisruptions = disruptionPoints.filter(p => p.severity === 'medium');
+            const lowDisruptions = disruptionPoints.filter(p => p.severity === 'low');
+
+            if (riskChart) {
+                riskChart.destroy();
+            }
+
+            const ctx = document.getElementById('multiDisruptionChart').getContext('2d');
+            riskChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Risk Score (%)',
+                            data: riskScores,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        },
+                        {
+                            label: 'High Severity Disruptions',
+                            data: highDisruptions.map(p => ({ x: labels[p.x], y: p.y })),
+                            type: 'scatter',
+                            backgroundColor: '#f44336',
+                            borderColor: '#d32f2f',
+                            borderWidth: 2,
+                            pointRadius: 10,
+                            pointHoverRadius: 12,
+                            pointStyle: 'triangle'
+                        },
+                        {
+                            label: 'Medium Severity Disruptions',
+                            data: mediumDisruptions.map(p => ({ x: labels[p.x], y: p.y })),
+                            type: 'scatter',
+                            backgroundColor: '#ff9800',
+                            borderColor: '#f57c00',
+                            borderWidth: 2,
+                            pointRadius: 8,
+                            pointHoverRadius: 10,
+                            pointStyle: 'circle'
+                        },
+                        {
+                            label: 'Low Severity Disruptions',
+                            data: lowDisruptions.map(p => ({ x: labels[p.x], y: p.y })),
+                            type: 'scatter',
+                            backgroundColor: '#4caf50',
+                            borderColor: '#45a049',
+                            borderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
+                            pointStyle: 'rect'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'nearest',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: `Risk & Disruptions: ${currentRouteData.origin} → ${currentRouteData.destination}`,
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            },
+                            padding: 20
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.dataset.type === 'scatter') {
+                                        const point = context.raw;
+                                        return `${context.dataset.label}: Risk ${point.y.toFixed(1)}%`;
+                                    } else {
+                                        return `Risk Score: ${context.parsed.y.toFixed(1)}%`;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Risk Level (%)',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            min: 0,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Date',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createCurrentStateChart(disruptions) {
+            // Create a simple bar chart showing current disruptions
+            const highCount = disruptions.filter(d => d.severity === 'high').length;
+            const mediumCount = disruptions.filter(d => d.severity === 'medium').length;
+            const lowCount = disruptions.filter(d => d.severity === 'low').length;
+
+            if (riskChart) {
+                riskChart.destroy();
+            }
+
+            const ctx = document.getElementById('multiDisruptionChart').getContext('2d');
+            riskChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['High Severity', 'Medium Severity', 'Low Severity'],
+                    datasets: [{
+                        label: 'Current Disruptions',
+                        data: [highCount, mediumCount, lowCount],
+                        backgroundColor: [
+                            'rgba(244, 67, 54, 0.8)',
+                            'rgba(255, 152, 0, 0.8)',
+                            'rgba(76, 175, 80, 0.8)'
+                        ],
+                        borderColor: [
+                            '#d32f2f',
+                            '#f57c00',
+                            '#45a049'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: `Current Disruptions: ${currentRouteData.origin} → ${currentRouteData.destination}`,
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            },
+                            title: {
+                                display: true,
+                                text: 'Number of Disruptions'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function proceedWithRoute() {
+            if (!currentRouteData) {
+                alert('Please analyze a route first');
+                return;
+            }
+
+            const { origin, destination, riskData } = currentRouteData;
+            const riskLevel = riskData.risk_score > 0.7 ? 'HIGH' : riskData.risk_score > 0.4 ? 'MEDIUM' : 'LOW';
+
+            const confirmMsg = `You have chosen to PROCEED with the route:\n\n` +
+                             `${origin} → ${destination}\n\n` +
+                             `Risk Level: ${riskLevel} (${(riskData.risk_score * 100).toFixed(0)}%)\n\n` +
+                             `This decision has been recorded. You can now:\n` +
+                             `• Return to home to enter shipment details\n` +
+                             `• Monitor this route in Live Disruptions\n` +
+                             `• Track progress in Route Analytics\n\n` +
+                             `Would you like to return to the home page?`;
+
+            if (confirm(confirmMsg)) {
+                window.location.href = 'index.html';
+            }
+        }
+
+        function reconsiderRoute() {
+            if (!currentRouteData) {
+                alert('Please analyze a route first');
+                return;
+            }
+
+            const { origin, destination, riskData } = currentRouteData;
+
+            const confirmMsg = `You have chosen to RECONSIDER the route:\n\n` +
+                             `${origin} → ${destination}\n\n` +
+                             `Risk Level: ${(riskData.risk_score * 100).toFixed(0)}%\n\n` +
+                             `Consider:\n` +
+                             `• Analyzing alternative routes with lower risk\n` +
+                             `• Waiting for disruptions to clear\n` +
+                             `• Consulting with logistics team\n\n` +
+                             `Would you like to clear the form and analyze another route?`;
+
+            if (confirm(confirmMsg)) {
+                // Clear inputs and hide results
+                document.getElementById('originInput').value = '';
+                document.getElementById('destinationInput').value = '';
+                document.getElementById('resultsSection').classList.add('hidden');
+                currentRouteData = null;
+                
+                if (riskChart) {
+                    riskChart.destroy();
+                    riskChart = null;
+                }
+            }
+        }
+
+        // Add keyboard shortcut for quick analysis
+        document.addEventListener('keydown', function(event) {
+            if (event.ctrlKey && event.key === 'Enter') {
+                analyzeRouteForDecision();
+            }
+        });
+
+        // Auto-focus on first input
+        document.getElementById('originInput').focus();
+    </script>
+</body>
+</html>

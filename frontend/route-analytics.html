@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Analytics - Safegrid Navigator</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 2em;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-links a {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .nav-links a:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .route-selector {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: end;
+        }
+
+        .input-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        .btn {
+            padding: 10px 25px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #4caf50;
+        }
+
+        .btn-secondary:hover {
+            background: #45a049;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-top: 20px;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .route-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .route-card h3 {
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .metric-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .metric-value {
+            font-weight: 700;
+            font-size: 1.1em;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 1.2em;
+        }
+
+        .export-btn {
+            background: #ff9800;
+            float: right;
+        }
+
+        .export-btn:hover {
+            background: #f57c00;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-left: 4px solid #1976d2;
+        }
+
+        .route-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .route-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .route-item button {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-chart-area"></i> Advanced Route Analytics</h1>
+            <div class="nav-links">
+                <a href="index.html"><i class="fas fa-home"></i> Home</a>
+                <a href="analytics.html"><i class="fas fa-chart-bar"></i> Analytics</a>
+                <a href="route-analytics.html" style="background: #764ba2;"><i class="fas fa-chart-area"></i> Route Analytics</a>
+                <a href="route-decision-maker.html"><i class="fas fa-map-marked-alt"></i> Decision Maker</a>
+                <a href="live-disruptions.html"><i class="fas fa-broadcast-tower"></i> Live Feed</a>
+            </div>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('single')">Single Route Analysis</button>
+            <button class="tab" onclick="switchTab('compare')">Route Comparison</button>
+        </div>
+
+        <!-- Single Route Tab -->
+        <div id="single-tab" class="tab-content active">
+            <div class="card">
+                <h2><i class="fas fa-route"></i> Route-Specific Historical Analysis</h2>
+                
+                <div class="route-selector">
+                    <div class="input-group">
+                        <label>Origin</label>
+                        <input type="text" id="singleOrigin" placeholder="e.g., Shanghai">
+                    </div>
+                    <div class="input-group">
+                        <label>Destination</label>
+                        <input type="text" id="singleDestination" placeholder="e.g., Los Angeles">
+                    </div>
+                    <div class="input-group">
+                        <label>Time Period</label>
+                        <select id="singleDays">
+                            <option value="7">Last 7 Days</option>
+                            <option value="14">Last 14 Days</option>
+                            <option value="30" selected>Last 30 Days</option>
+                            <option value="60">Last 60 Days</option>
+                            <option value="90">Last 90 Days</option>
+                        </select>
+                    </div>
+                    <button class="btn" onclick="analyzeRoute()">
+                        <i class="fas fa-search"></i> Analyze
+                    </button>
+                    <button class="btn export-btn" onclick="exportData('single')">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+
+                <div id="singleRouteResult"></div>
+
+                <div class="chart-container">
+                    <canvas id="routeRiskChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison Tab -->
+        <div id="compare-tab" class="tab-content">
+            <div class="card">
+                <h2><i class="fas fa-balance-scale"></i> Multi-Route Comparison</h2>
+                
+                <div class="alert alert-info">
+                    <strong>Tip:</strong> Add multiple routes to compare their risk profiles side-by-side. This helps identify the safest corridor for your shipments.
+                </div>
+
+                <div class="route-selector">
+                    <div class="input-group">
+                        <label>Origin</label>
+                        <input type="text" id="compareOrigin" placeholder="e.g., Shanghai">
+                    </div>
+                    <div class="input-group">
+                        <label>Destination</label>
+                        <input type="text" id="compareDestination" placeholder="e.g., Los Angeles">
+                    </div>
+                    <button class="btn btn-secondary" onclick="addRouteToComparison()">
+                        <i class="fas fa-plus"></i> Add Route
+                    </button>
+                </div>
+
+                <div class="route-list" id="routeList"></div>
+
+                <div class="route-selector">
+                    <div class="input-group">
+                        <label>Time Period</label>
+                        <select id="compareDays">
+                            <option value="7">Last 7 Days</option>
+                            <option value="14">Last 14 Days</option>
+                            <option value="30" selected>Last 30 Days</option>
+                        </select>
+                    </div>
+                    <button class="btn" onclick="compareRoutes()">
+                        <i class="fas fa-balance-scale"></i> Compare Routes
+                    </button>
+                    <button class="btn export-btn" onclick="exportData('compare')">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+
+                <div id="comparisonResult"></div>
+
+                <div class="comparison-grid" id="comparisonGrid"></div>
+
+                <div class="chart-container">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        let routeChart = null;
+        let comparisonChart = null;
+        let routesToCompare = [];
+        let currentSingleRouteData = null;
+        let currentComparisonData = null;
+
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        async function analyzeRoute() {
+            const origin = document.getElementById('singleOrigin').value.trim();
+            const destination = document.getElementById('singleDestination').value.trim();
+            const days = document.getElementById('singleDays').value;
+
+            if (!origin || !destination) {
+                alert('Please enter both origin and destination');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/route_history?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&days=${days}`);
+                const data = await response.json();
+                currentSingleRouteData = data;
+
+                if (data.history && data.history.length > 0) {
+                    displayRouteAnalysis(data);
+                    createRouteChart(data.history);
+                } else {
+                    document.getElementById('singleRouteResult').innerHTML = `
+                        <div class="alert alert-info">
+                            No historical data found for this route. Data will be collected as you perform risk calculations.
+                        </div>
+                    `;
+                    if (routeChart) {
+                        routeChart.destroy();
+                        routeChart = null;
+                    }
+                }
+            } catch (error) {
+                console.error('Error analyzing route:', error);
+                alert('Error analyzing route. Please try again.');
+            }
+        }
+
+        function displayRouteAnalysis(data) {
+            const history = data.history;
+            const riskScores = history.map(h => h.risk_score);
+            const avgRisk = (riskScores.reduce((a, b) => a + b, 0) / riskScores.length).toFixed(2);
+            const maxRisk = Math.max(...riskScores).toFixed(2);
+            const minRisk = Math.min(...riskScores).toFixed(2);
+            const trend = riskScores[riskScores.length - 1] > riskScores[0] ? 'Increasing' : 'Decreasing';
+
+            const html = `
+                <div class="comparison-grid" style="margin-top: 0;">
+                    <div class="route-card">
+                        <h3>Average Risk</h3>
+                        <div class="metric-value">${(avgRisk * 100).toFixed(0)}%</div>
+                    </div>
+                    <div class="route-card">
+                        <h3>Risk Range</h3>
+                        <div class="metric-value">${(minRisk * 100).toFixed(0)}% - ${(maxRisk * 100).toFixed(0)}%</div>
+                    </div>
+                    <div class="route-card">
+                        <h3>Data Points</h3>
+                        <div class="metric-value">${history.length}</div>
+                    </div>
+                    <div class="route-card">
+                        <h3>Trend</h3>
+                        <div class="metric-value">
+                            <i class="fas fa-arrow-${trend === 'Increasing' ? 'up' : 'down'}"></i> ${trend}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('singleRouteResult').innerHTML = html;
+        }
+
+        function createRouteChart(history) {
+            const labels = history.map(h => h.date);
+            const riskScores = history.map(h => h.risk_score * 100);
+            const highCount = history.map(h => h.high_severity_count);
+            const mediumCount = history.map(h => h.medium_severity_count);
+
+            if (routeChart) {
+                routeChart.destroy();
+            }
+
+            const ctx = document.getElementById('routeRiskChart').getContext('2d');
+            routeChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Risk Score (%)',
+                            data: riskScores,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'High Severity Events',
+                            data: highCount,
+                            borderColor: '#f44336',
+                            backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.4,
+                            yAxisID: 'y1'
+                        },
+                        {
+                            label: 'Medium Severity Events',
+                            data: mediumCount,
+                            borderColor: '#ff9800',
+                            backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.4,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: `Risk History: ${history[0].origin || 'Origin'} → ${history[0].destination || 'Destination'}`
+                        }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Risk Score (%)'
+                            },
+                            min: 0,
+                            max: 100
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Event Count'
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function addRouteToComparison() {
+            const origin = document.getElementById('compareOrigin').value.trim();
+            const destination = document.getElementById('compareDestination').value.trim();
+
+            if (!origin || !destination) {
+                alert('Please enter both origin and destination');
+                return;
+            }
+
+            // Check if route already exists
+            const exists = routesToCompare.some(r => r.origin === origin && r.destination === destination);
+            if (exists) {
+                alert('This route is already in the comparison list');
+                return;
+            }
+
+            routesToCompare.push({ origin, destination });
+            updateRouteList();
+
+            // Clear inputs
+            document.getElementById('compareOrigin').value = '';
+            document.getElementById('compareDestination').value = '';
+        }
+
+        function updateRouteList() {
+            const html = routesToCompare.map((route, index) => `
+                <div class="route-item">
+                    <span><strong>${route.origin}</strong> → <strong>${route.destination}</strong></span>
+                    <button onclick="removeRoute(${index})">
+                        <i class="fas fa-trash"></i> Remove
+                    </button>
+                </div>
+            `).join('');
+
+            document.getElementById('routeList').innerHTML = html || '<p style="color: #999;">No routes added yet</p>';
+        }
+
+        function removeRoute(index) {
+            routesToCompare.splice(index, 1);
+            updateRouteList();
+        }
+
+        async function compareRoutes() {
+            if (routesToCompare.length < 2) {
+                alert('Please add at least 2 routes to compare');
+                return;
+            }
+
+            const days = document.getElementById('compareDays').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/compare_routes`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        routes: routesToCompare,
+                        days: parseInt(days)
+                    })
+                });
+
+                const data = await response.json();
+                currentComparisonData = data;
+                displayComparison(data.comparison);
+                createComparisonChart(data.comparison);
+            } catch (error) {
+                console.error('Error comparing routes:', error);
+                alert('Error comparing routes. Please try again.');
+            }
+        }
+
+        function displayComparison(comparison) {
+            const html = Object.entries(comparison).map(([routeName, data]) => `
+                <div class="route-card">
+                    <h3>${routeName}</h3>
+                    <div class="metric">
+                        <span class="metric-label">Average Risk</span>
+                        <span class="metric-value">${(data.average_risk * 100).toFixed(0)}%</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Current Risk</span>
+                        <span class="metric-value">${(data.current_risk * 100).toFixed(0)}%</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Max Risk</span>
+                        <span class="metric-value">${(data.max_risk * 100).toFixed(0)}%</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Min Risk</span>
+                        <span class="metric-value">${(data.min_risk * 100).toFixed(0)}%</span>
+                    </div>
+                    <div class="metric" style="border-bottom: none;">
+                        <span class="metric-label">Data Points</span>
+                        <span class="metric-value">${data.data_points}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('comparisonGrid').innerHTML = html;
+        }
+
+        function createComparisonChart(comparison) {
+            if (comparisonChart) {
+                comparisonChart.destroy();
+            }
+
+            // Get all unique dates across all routes
+            const allDates = new Set();
+            Object.values(comparison).forEach(route => {
+                route.history.forEach(h => allDates.add(h.date));
+            });
+            const labels = Array.from(allDates).sort();
+
+            // Create dataset for each route
+            const datasets = Object.entries(comparison).map(([routeName, data], index) => {
+                const colors = [
+                    '#667eea', '#f44336', '#4caf50', '#ff9800', '#9c27b0', '#00bcd4'
+                ];
+                const color = colors[index % colors.length];
+
+                // Map data to labels
+                const riskData = labels.map(date => {
+                    const entry = data.history.find(h => h.date === date);
+                    return entry ? entry.risk_score * 100 : null;
+                });
+
+                return {
+                    label: routeName,
+                    data: riskData,
+                    borderColor: color,
+                    backgroundColor: color + '20',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.4,
+                    spanGaps: true
+                };
+            });
+
+            const ctx = document.getElementById('comparisonChart').getContext('2d');
+            comparisonChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Route Risk Comparison Over Time'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Risk Score (%)'
+                            },
+                            min: 0,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        function exportData(type) {
+            let data, filename;
+
+            if (type === 'single') {
+                if (!currentSingleRouteData) {
+                    alert('No data to export. Please analyze a route first.');
+                    return;
+                }
+                data = currentSingleRouteData;
+                filename = `route-analysis-${data.origin}-${data.destination}-${new Date().toISOString().split('T')[0]}.json`;
+            } else {
+                if (!currentComparisonData) {
+                    alert('No data to export. Please compare routes first.');
+                    return;
+                }
+                data = currentComparisonData;
+                filename = `route-comparison-${new Date().toISOString().split('T')[0]}.json`;
+            }
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
